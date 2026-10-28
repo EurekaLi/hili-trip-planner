@@ -1,0 +1,2 @@
+# 测试工具独立于生产镜像安装，并通过 requirements-test.lock 固定版本
+pytest>=9.0.0,<10.0.0

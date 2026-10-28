@@ -1,0 +1,56 @@
+{
+  "name": "beijing_3_day_v1",
+  "request": {
+    "city": "北京",
+    "start_date": "2026-09-15",
+    "end_date": "2026-09-17",
+    "travel_days": 3,
+    "transportation": "公共交通",
+    "accommodation": "经济型酒店",
+    "preferences": ["历史文化"]
+  },
+  "route_call_budget": 18,
+  "days": [
+    {
+      "date": "2026-09-15",
+      "description": "历史建筑与皇家园林",
+      "attractions": [
+        {"poi_id": "F", "name": "故宫博物院", "address": "景山前街4号", "location": {"longitude": 116.397029, "latitude": 39.917839}, "visit_duration": 240, "description": "明清皇家宫殿", "category": "博物馆", "rating": 5.0, "opening_hours": "周二至周日 08:30-17:30，周一闭馆"},
+        {"poi_id": "S", "name": "颐和园", "address": "新建宫门路19号", "location": {"longitude": 116.272352, "latitude": 39.992105}, "visit_duration": 240, "description": "皇家园林", "category": "风景名胜", "rating": 4.4, "opening_hours": "06:30-18:00"}
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "description": "国家博物馆与艺术园区",
+      "attractions": [
+        {"poi_id": "N", "name": "中国国家博物馆", "address": "东长安街16号", "location": {"longitude": 116.401304, "latitude": 39.905374}, "visit_duration": 180, "description": "国家级综合博物馆", "category": "博物馆", "rating": 4.9, "opening_hours": "周二至周日 09:00-17:30，周一闭馆"},
+        {"poi_id": "A", "name": "798艺术区", "address": "酒仙桥路4号", "location": {"longitude": 116.497716, "latitude": 39.984529}, "visit_duration": 240, "description": "当代艺术园区", "category": "文化艺术", "rating": 4.5, "opening_hours": "10:00-20:00"}
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "description": "古建、公园与夜游",
+      "attractions": [
+        {"poi_id": "T", "name": "天坛公园", "address": "天坛东里甲1号", "location": {"longitude": 116.417246, "latitude": 39.882065}, "visit_duration": 180, "description": "明清祭天建筑群", "category": "风景名胜", "rating": 4.8, "opening_hours": "06:00-22:00"},
+        {"poi_id": "O", "name": "奥林匹克公园", "address": "北辰东路15号", "location": {"longitude": 116.393075, "latitude": 40.011192}, "visit_duration": 180, "description": "奥运场馆公园", "category": "公园", "rating": 4.6, "opening_hours": "06:00-22:00"},
+        {"poi_id": "H", "name": "什刹海夜景", "address": "地安门西大街49号", "location": {"longitude": 116.386393, "latitude": 39.941192}, "visit_duration": 120, "description": "历史街区夜游", "category": "夜游", "rating": 4.7, "opening_hours": "18:00-23:00"}
+      ]
+    }
+  ],
+  "routes": [
+    {"origin_poi_id": "F", "destination_poi_id": "S", "distance": 22000, "duration": 7200, "description": "地铁换乘前往颐和园"},
+    {"origin_poi_id": "N", "destination_poi_id": "A", "distance": 14000, "duration": 2700, "description": "地铁转公交前往798"},
+    {"origin_poi_id": "T", "destination_poi_id": "O", "distance": 18000, "duration": 1200, "description": "地铁前往奥林匹克公园"},
+    {"origin_poi_id": "O", "destination_poi_id": "H", "distance": 10000, "duration": 1500, "description": "地铁前往什刹海"},
+    {"origin_poi_id": "F", "destination_poi_id": "N", "distance": 1800, "duration": 900, "description": "步行与短途公交前往国博"},
+    {"origin_poi_id": "A", "destination_poi_id": "T", "distance": 15000, "duration": 1800, "description": "地铁前往天坛公园"},
+    {"origin_poi_id": "S", "destination_poi_id": "O", "distance": 17000, "duration": 1800, "description": "地铁前往奥林匹克公园"}
+  ],
+  "thresholds": {
+    "executable_day_ratio": 1.0,
+    "route_coverage": 1.0,
+    "daily_visit_coverage": 1.0,
+    "timeline_overlap_count": 0,
+    "maximum_transfer_minutes": 45
+  }
+}

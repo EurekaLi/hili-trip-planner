@@ -1,0 +1,11 @@
+{
+  "name": "hili-agents-trip-planner-quality-gates",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test:e2e": "playwright test --config tests/phase6/e2e/playwright.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

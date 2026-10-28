@@ -1,0 +1,211 @@
+name: hili-trip-planner
+
+x-backend: &backend
+  image: hili-trip-planner-backend:${APP_VERSION:-local}
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+    additional_contexts:
+      hili_agents_src: ${HILI_AGENTS_SOURCE:?Set HILI_AGENTS_SOURCE to a separate local HiliAgents checkout}
+  environment: &backend-environment
+    APP_NAME: HiliAgents智能旅行助手
+    APP_VERSION: ${APP_VERSION:-1.0.0}
+    ENVIRONMENT: ${ENVIRONMENT:-production}
+    LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    CORS_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost:8080}
+    AMAP_API_KEY: ${AMAP_API_KEY:-}
+    DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+    DASHSCOPE_MODEL_ID: ${DASHSCOPE_MODEL_ID:-qwen3.6-plus}
+    DASHSCOPE_BASE_URL: ${DASHSCOPE_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+    DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-trip_user}:${POSTGRES_PASSWORD:-trip_dev_password}@postgres:5432/${POSTGRES_DB:-trip_planner}
+    DATABASE_AUTO_CREATE: "false"
+    REDIS_URL: redis://redis:6379/0
+    AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+    RATE_LIMIT_ENABLED: "true"
+    RATE_LIMIT_FAIL_OPEN: "false"
+    REQUEST_MAX_BODY_BYTES: ${REQUEST_MAX_BODY_BYTES:-1048576}
+    GENERATION_LLM_CALL_BUDGET: ${GENERATION_LLM_CALL_BUDGET:-4}
+    GENERATION_EXTERNAL_CALL_BUDGET: ${GENERATION_EXTERNAL_CALL_BUDGET:-40}
+    GENERATION_COST_BUDGET_CNY: ${GENERATION_COST_BUDGET_CNY:-2.0}
+    IMAGE_PROVIDER_CALL_BUDGET: ${IMAGE_PROVIDER_CALL_BUDGET:-2}
+    CIRCUIT_FAILURE_THRESHOLD: ${CIRCUIT_FAILURE_THRESHOLD:-3}
+    CIRCUIT_RECOVERY_SECONDS: ${CIRCUIT_RECOVERY_SECONDS:-60}
+    UNSPLASH_ACCESS_KEY: ${UNSPLASH_ACCESS_KEY:-}
+    UNSPLASH_SECRET_KEY: ${UNSPLASH_SECRET_KEY:-}
+    SENTRY_DSN: ${SENTRY_DSN:-}
+    SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.05}
+    METRICS_BEARER_TOKEN: ${METRICS_BEARER_TOKEN:-}
+    PRIVACY_CONTACT_EMAIL: ${PRIVACY_CONTACT_EMAIL:-}
+    TURNSTILE_ENABLED: ${TURNSTILE_ENABLED:-false}
+    TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+    TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+    TURNSTILE_EXPECTED_HOSTNAMES: ${TURNSTILE_EXPECTED_HOSTNAMES:-}
+    LLM_INPUT_COST_PER_MILLION_TOKENS_CNY: ${LLM_INPUT_COST_PER_MILLION_TOKENS_CNY:-0}
+    LLM_OUTPUT_COST_PER_MILLION_TOKENS_CNY: ${LLM_OUTPUT_COST_PER_MILLION_TOKENS_CNY:-0}
+  networks:
+    - application
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-trip_planner}
+      POSTGRES_USER: ${POSTGRES_USER:-trip_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trip_dev_password}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - trip-planner-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - application
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6380}:6379"
+    volumes:
+      - trip-planner-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - application
+
+  migrate:
+    <<: *backend
+    restart: "no"
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *backend
+    restart: unless-stopped
+    command: ["python", "-m", "uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      start_period: 20s
+      retries: 10
+
+  worker:
+    <<: *backend
+    restart: unless-stopped
+    command:
+      - python
+      - -m
+      - celery
+      - -A
+      - app.jobs.celery_app:celery_app
+      - worker
+      - --loglevel=INFO
+      - --concurrency=${CELERY_CONCURRENCY:-2}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -m celery
+          -A app.jobs.celery_app:celery_app
+          inspect ping
+          --destination celery@$${HOSTNAME}
+          --timeout 5
+          | grep -q pong
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 5
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  web:
+    image: hili-trip-planner-web:${APP_VERSION:-local}
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_AMAP_WEB_JS_KEY: ${VITE_AMAP_WEB_JS_KEY:-}
+        VITE_AMAP_SECURITY_JS_CODE: ${VITE_AMAP_SECURITY_JS_CODE:-}
+        VITE_AMAP_SERVICE_HOST: ${VITE_AMAP_SERVICE_HOST:-}
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8080/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - application
+
+  prometheus:
+    image: prom/prometheus:v3.13.0
+    profiles: ["observability"]
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./deploy/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - trip-planner-prometheus-data:/prometheus
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - application
+
+  grafana:
+    image: grafana/grafana:13.2.2
+    profiles: ["observability"]
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me-before-production}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - ./deploy/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - trip-planner-grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - application
+
+networks:
+  application:
+    driver: bridge
+
+volumes:
+  trip-planner-postgres-data:
+  trip-planner-redis-data:
+  trip-planner-prometheus-data:
+  trip-planner-grafana-data:

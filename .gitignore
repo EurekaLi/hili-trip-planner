@@ -1,0 +1,13 @@
+.env
+.env.compose
+node_modules/
+**/.venv/
+reports/
+backups/
+**/__pycache__/
+**/.pytest_cache/
+**/*.pyc
+**/*.db
+**/dist/
+**/data/
+*.log

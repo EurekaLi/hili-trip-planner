@@ -1,0 +1,97 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "API requests / second",
+      "id": 1,
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(trip_planner_http_requests_total[5m]))",
+          "legendFormat": "requests/s"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Generation success rate",
+      "id": 2,
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(trip_planner_generation_tasks_total{status=\"succeeded\"}[24h])) / clamp_min(sum(increase(trip_planner_generation_tasks_total[24h])), 1)",
+          "legendFormat": "success"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Generation P95",
+      "id": 3,
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(trip_planner_generation_task_duration_seconds_bucket[30m])) by (le))",
+          "legendFormat": "P95"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Known provider cost (24h)",
+      "id": 4,
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "currencyCNY" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(trip_planner_external_call_cost_cny_total[24h]))",
+          "legendFormat": "CNY"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "External provider latency P95",
+      "id": 5,
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(trip_planner_external_call_duration_seconds_bucket[10m])) by (le, provider))",
+          "legendFormat": "{{provider}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Open circuits",
+      "id": 6,
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "trip_planner_circuit_open",
+          "legendFormat": "{{provider}}"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 41,
+  "tags": ["hili-agents", "trip-planner"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "Hili Trip Planner Overview",
+  "uid": "hili-trip-overview",
+  "version": 1
+}
