@@ -82,7 +82,7 @@ Python 3.11 Linux 专用的 `backend/requirements-linux.lock`。
 ## 发布与安全
 
 - `.env`、备份、日志、报告、数据库与 `node_modules` 均被 Git 忽略；只提交
-  `.env.compose.example`，不要把真实密钥放进示例文件。
+  `.env.compose.example`。
 - `backend/vendor/amap-mcp-server/` 是独立的第三方 fork 副本，保留
   [MIT 许可证](backend/vendor/amap-mcp-server/LICENSE)。如改回 Git 子模块，
   需同步维护 `.gitmodules` 和 CI 的递归检出设置。
@@ -96,5 +96,5 @@ Python 3.11 Linux 专用的 `backend/requirements-linux.lock`。
 
 ## 致谢
 
-- [HelloAgents](https://github.com/datawhalechina/Hello-Agents)：初始学习模板参考。
+- [HelloAgents](https://github.com/datawhalechina/Hello-Agents)：初始Demo学习模板参考。
 - [amap-mcp-server](https://github.com/sugarforever/amap-mcp-server)：高德地图 MCP 上游项目。
