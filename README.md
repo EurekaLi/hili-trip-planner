@@ -1,5 +1,7 @@
 # HiliAgents 智能旅行助手
 
+[English](README.en.md) | 简体中文
+
 基于 HiliAgents 的多 Agent 旅行规划应用。高德 MCP 提供真实 POI、天气和路线；
 景点、天气、住宿控制 Agent 并行分析候选数据，Planner 生成初稿，确定性优化器
 校验景点、营业时间、游览时长与通勤。应用提供异步生成进度、地图、账户、行程
